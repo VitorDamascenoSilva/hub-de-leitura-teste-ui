@@ -10,13 +10,34 @@ describe('Funcionalidade: Busca no catálogo', () => {
     it('Deve fazer a busca do livro 1984 com sucesso', () => {
         cy.get('#search-input').type('1984')
         cy.get('.card-title').should('contain', '1984')
-        
+
     });
 
     it('Deve fazer a busca do livro 1984 com sucesso', () => {
         cy.get('#search-input').type(catalogo[0].Livro)
         cy.get('.card-title').should('contain', catalogo[0].Livro)
-        
+
     });
-    
+
+    it('Deve fazer a busca de um livro usando fixture', () => {
+        cy.fixture('livros').then((catalog) => {
+
+            cy.get('#search-input').type(catalog[0].Livro)
+            cy.get('.card-title').should('contain', catalog[0].Livro)
+        })
+
+    });
+
+    it.only('Deve validar todos os livros da lista', () => {
+        cy.fixture('livros').then((catalog)=>{
+            catalog.forEach(item =>{
+                cy.get('#search-input').clear().type(item.Livro)
+                 cy.get('.card-title').should('contain', item.Livro)
+            })
+
+
+        })
+        
+    })
+
 });
