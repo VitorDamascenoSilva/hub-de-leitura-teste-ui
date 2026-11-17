@@ -30,18 +30,24 @@ pipeline {
         stage('Aguardar servidor') {
             steps {
                 sh '''
-                    for i in {1..30}; do
-                        if curl -s http://localhost:3000/api/health > /dev/null; then
+                    for i in $(seq 1 30); do
+                        if curl -fsS http://localhost:3000/api/health > /dev/null; then
                             echo "Servidor disponível!"
                             exit 0
                         fi
+
+                        echo "Aguardando servidor... tentativa $i"
                         sleep 2
                     done
 
                     echo "Servidor não iniciou corretamente."
+
+                    cat hub-de-leitura-integrado/servidor.log || true
+
                     exit 1
                 '''
             }
         }
+        
     }
 }
