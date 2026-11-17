@@ -14,8 +14,32 @@ pipeline {
             steps {
                 dir('hub-de-leitura-integrado'){
                     sh 'npm install'
-                    sh 'npm start'
                     }
+            }
+        }
+
+        stage('Iniciar servidor') {
+            steps {
+                dir('hub-de-leitura-integrado') {
+                    sh 'nohup npm start > servidor.log 2>&1 &'
+                    }
+            }
+        }
+
+        stage('Aguardar servidor') {
+            steps {
+                sh '''
+                    for i in {1..30}; do
+                        if curl -s http://localhost:3000/api/health > /dev/null; then
+                            echo "Servidor disponível!"
+                            exit 0
+                        fi
+                        sleep 2
+                    done
+
+                    echo "Servidor não iniciou corretamente."
+                    exit 1
+                '''
             }
         }
     }
