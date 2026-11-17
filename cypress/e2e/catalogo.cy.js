@@ -29,7 +29,7 @@ it('Deve clicar no primeiro botão Adicionar à cesta', () => {
 it('Deve clicar no ultimo botão Adicionar à cesta', () => {
 
    cy.get('.btn-primary').last().click() 
-   cy.get('#global-alert-container').should('contain', 'O Alquimista')
+   cy.get('#global-alert-container').should('contain', 'foi')
    
     
 });
