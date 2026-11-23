@@ -3,6 +3,12 @@ pipeline {
     tools { nodejs "NodeJS"}
 
     stages {
+
+        stage("Instalar dependencias dos testes") {
+            steps {
+          sh 'npm install'
+        }
+    }
        
         stage("Clonar o hub de leitura integrado"){
             steps {
@@ -22,7 +28,10 @@ pipeline {
         stage('Iniciar servidor') {
             steps {
                 dir('hub-de-leitura-integrado') {
-                    sh 'nohup npm start > servidor.log 2>&1 &'
+                    sh '''
+                        JENKINS_NODE_COOKIE=dontKillMe nohup node src/server.js > servidor.log 2>&1 &
+                        echo $! > servidor.pid
+                    '''
                     }
             }
         }
@@ -48,6 +57,24 @@ pipeline {
                 '''
             }
         }
-        
+
+        stage('Executar testes Cypress') {
+            steps {
+                sh 'npm test'
+            }
+        }
+    
     }
+     post {
+        always {
+            sh '''
+                if [ -f hub-de-leitura-integrado/servidor.pid ]; then
+                    kill "$(cat hub-de-leitura-integrado/servidor.pid)" 2>/dev/null || true
+                    rm -f hub-de-leitura-integrado/servidor.pid
+                fi
+            '''
+        }
+    }
+        
+    
 }
