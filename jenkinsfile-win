@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+    tools { nodejs "NodeJS"}
+
+    stages {
+
+        stage("Instalar dependencias dos testes") {
+            steps {
+          sh 'npm install'
+        }
+    }
+       
+        stage("Clonar o hub de leitura integrado"){
+            steps {
+                sh 'rm -rf hub-de-leitura-integrado'
+                sh 'git clone https://github.com/EBAC-QE/hub-de-leitura-integrado.git'
+            }
+        }
+
+        stage("Instalar dependencias do projeto"){
+            steps {
+                dir('hub-de-leitura-integrado'){
+                    sh 'npm install'
+                    }
+            }
+        }
+
+        stage('Iniciar servidor') {
+            steps {
+                dir('hub-de-leitura-integrado') {
+                    sh '''
+                        JENKINS_NODE_COOKIE=dontKillMe nohup node src/server.js > servidor.log 2>&1 &
+                        echo $! > servidor.pid
+                    '''
+                    }
+            }
+        }
+
+        stage('Aguardar servidor') {
+            steps {
+                sh '''
+                    for i in $(seq 1 30); do
+                        if curl -fsS http://localhost:3000/api/health > /dev/null; then
+                            echo "Servidor disponível!"
+                            exit 0
+                        fi
+
+                        echo "Aguardando servidor... tentativa $i"
+                        sleep 2
+                    done
+
+                    echo "Servidor não iniciou corretamente."
+
+                    cat hub-de-leitura-integrado/servidor.log || true
+
+                    exit 1
+                '''
+            }
+        }
+
+        stage('Executar testes Cypress') {
+            steps {
+                sh 'npm test'
+            }
+        }
+    
+    }
+     post {
+        always {
+            sh '''
+                if [ -f hub-de-leitura-integrado/servidor.pid ]; then
+                    kill "$(cat hub-de-leitura-integrado/servidor.pid)" 2>/dev/null || true
+                    rm -f hub-de-leitura-integrado/servidor.pid
+                fi
+            '''
+        }
+    }
+        
+    
+}
