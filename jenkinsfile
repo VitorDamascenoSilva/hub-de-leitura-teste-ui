@@ -67,7 +67,9 @@ pipeline {
     }
      post {
         always {
+            dir('hub-de-leitura-teste-ui'){
             archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
+            }
             sh '''
                 if [ -f hub-de-leitura-integrado/servidor.pid ]; then
                     kill "$(cat hub-de-leitura-integrado/servidor.pid)" 2>/dev/null || true
