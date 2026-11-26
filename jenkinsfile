@@ -13,7 +13,7 @@ pipeline {
         stage("Clonar o hub de leitura integrado"){
             steps {
                 sh 'rm -rf hub-de-leitura-integrado'
-                sh 'git clone https://github.com/EBAC-QE/hub-de-leitura-integrado.git'
+                sh 'git clone --depth 1 https://github.com/EBAC-QE/hub-de-leitura-integrado.git'
             }
         }
 
@@ -67,6 +67,7 @@ pipeline {
     }
      post {
         always {
+            archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
             sh '''
                 if [ -f hub-de-leitura-integrado/servidor.pid ]; then
                     kill "$(cat hub-de-leitura-integrado/servidor.pid)" 2>/dev/null || true

@@ -1,80 +1,64 @@
 pipeline {
     agent any
-    tools { nodejs "NodeJS"}
+    tools { nodejs "nodejs"}
 
     stages {
 
-        stage("Instalar dependencias dos testes") {
+        stage("Clonar o hub de leitura integrado") {
             steps {
-          sh 'npm install'
-        }
-    }
-       
-        stage("Clonar o hub de leitura integrado"){
-            steps {
-                sh 'rm -rf hub-de-leitura-integrado'
-                sh 'git clone https://github.com/EBAC-QE/hub-de-leitura-integrado.git'
-            }
-        }
-
-        stage("Instalar dependencias do projeto"){
-            steps {
-                dir('hub-de-leitura-integrado'){
-                    sh 'npm install'
-                    }
-            }
-        }
-
-        stage('Iniciar servidor') {
-            steps {
-                dir('hub-de-leitura-integrado') {
-                    sh '''
-                        JENKINS_NODE_COOKIE=dontKillMe nohup node src/server.js > servidor.log 2>&1 &
-                        echo $! > servidor.pid
-                    '''
-                    }
-            }
-        }
-
-        stage('Aguardar servidor') {
-            steps {
-                sh '''
-                    for i in $(seq 1 30); do
-                        if curl -fsS http://localhost:3000/api/health > /dev/null; then
-                            echo "Servidor disponível!"
-                            exit 0
-                        fi
-
-                        echo "Aguardando servidor... tentativa $i"
-                        sleep 2
-                    done
-
-                    echo "Servidor não iniciou corretamente."
-
-                    cat hub-de-leitura-integrado/servidor.log || true
-
-                    exit 1
+                bat '''
+                    if exist hub-de-leitura-integrado2 rmdir /s /q hub-de-leitura-integrado2
+                    git clone https://github.com/EBAC-QE/hub-de-leitura-integrado2.git
                 '''
             }
         }
 
-        stage('Executar testes Cypress') {
+        stage("Instalar dependencias do projeto") {
             steps {
-                sh 'npm test'
+                dir('hub-de-leitura-integrado2') {
+                    bat '''
+                        call npm install 
+                        start /B npm start
+                    '''
+                }
             }
         }
-    
-    }
-     post {
-        always {
-            sh '''
-                if [ -f hub-de-leitura-integrado/servidor.pid ]; then
-                    kill "$(cat hub-de-leitura-integrado/servidor.pid)" 2>/dev/null || true
-                    rm -f hub-de-leitura-integrado/servidor.pid
-                fi
-            '''
+
+        stage("Clonar o projeto de teste") {
+            steps {
+                bat '''
+                    if exist hub-de-leitura-teste-ui2 rmdir /s /q hub-de-leitura-teste-ui2
+                    git clone https://github.com/EBAC-QE/hub-de-leitura-teste-ui2.git
+                '''
+            }
+        }
+
+        stage("Instalar dependencias do projeto de teste") {
+            steps {
+                dir('hub-de-leitura-teste-ui2') {
+                    bat 'call npm install'
+                }
+            }
+        }
+
+        stage('Executar os testes automatizados') {
+            steps {
+                dir('hub-de-leitura-teste-ui2') {
+                    bat 'call npm test'
+                }
+
+            }
         }
     }
-        
-    
+
+    post {
+        always {
+            dir('hub-de-leitura-teste-ui2') {
+                archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
+                allure includeProperties: false, jdk: '', results: [[ path: 'allure-report']]
+            }
+            bat 'taskkill /F /IM node.exe || exit 0'
+        }
+    }
+
 }
