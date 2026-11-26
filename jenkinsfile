@@ -69,6 +69,7 @@ pipeline {
         always {
             dir('hub-de-leitura-teste-ui'){
             archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
+            allure includeProperties: false, jdk: '', results: [[ path: 'allure-report']]
             }
             sh '''
                 if [ -f hub-de-leitura-integrado/servidor.pid ]; then
